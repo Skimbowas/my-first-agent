@@ -1,67 +1,116 @@
 require('dotenv').config();
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
-// Access your API key from the environment
-const apiKey = process.env.GOOGLE_API_KEY;
-
-if (!apiKey) {
-  console.error("❌ ERROR: GOOGLE_API_KEY is not set. Run: export GOOGLE_API_KEY='your_key'");
-  process.exit(1);
-}
-
-const genAI = new GoogleGenerativeAI(apiKey);
-
-// UPDATED: Using gemini-2.0-flash for 2026 compatibility
-const model = genAI.getGenerativeModel({ 
-    model: "gemini-2.0-flash", 
-    systemInstruction: "You are a senior IT Architect. Give concise, technical answers." 
-});
-
+const Anthropic = require('@anthropic-ai/sdk');
+const fs = require('fs');
 const readline = require('readline');
 
-// Create the chat session — this holds conversation history automatically
-const chat = model.startChat();
+const client = new Anthropic();
 
-// Set up terminal input/output
+const tools = [{
+  name: 'read_study_notes',
+  description: 'Reads the contents of the local study notes file. Use this when the user asks about NetSuite topics, exam questions, or anything that might be in the study notes.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      filename: {
+        type: 'string',
+        description: 'The filename to read. Default: study_notes.txt'
+      }
+    },
+    required: ['filename']
+  }
+}];
+
+function executeTool(name, input) {
+  if (name === 'read_study_notes') {
+    const filename = input.filename || 'study_notes.txt';
+    try {
+      const contents = fs.readFileSync(filename, 'utf8');
+      console.log(`   [Tool: read "${filename}" - ${contents.length} chars]`);
+      return contents;
+    } catch (err) {
+      return `Error: could not read file "${filename}". ${err.message}`;
+    }
+  }
+  return `Error: unknown tool "${name}"`;
+}
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
 
-// This function asks for input, sends it, prints the reply, then calls itself again
+const messages = [];
+
 async function turn() {
   rl.question('\nYou: ', async (userInput) => {
 
-    // Let the user type 'exit' to quit cleanly
     if (userInput.toLowerCase() === 'exit') {
       console.log('\nAgent: Goodbye. Session ended.');
       rl.close();
       return;
     }
 
-    // Skip empty input
     if (!userInput.trim()) {
       turn();
       return;
     }
 
+    messages.push({ role: 'user', content: userInput });
+
     try {
       console.log('Agent: thinking...');
-      const result = await chat.sendMessage(userInput);
-      const text = result.response.text();
 
-      // Clear the "thinking..." line and print the real response
-      process.stdout.write('\x1B[1A\x1B[2K'); // moves up one line, clears it
+      let response = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        system: 'You are a senior IT Architect and NetSuite specialist helping a colleague study for the SuiteFoundation exam. When asked about NetSuite topics, always use the read_study_notes tool to check the study notes first.',
+        tools: tools,
+        messages: messages
+      });
+
+      while (response.stop_reason === 'tool_use') {
+        const toolUse = response.content.find(b => b.type === 'tool_use');
+        console.log(`   [Model requested: ${toolUse.name}]`);
+
+        const toolResult = executeTool(toolUse.name, toolUse.input);
+
+        messages.push({ role: 'assistant', content: response.content });
+        messages.push({
+          role: 'user',
+          content: [{
+            type: 'tool_result',
+            tool_use_id: toolUse.id,
+            content: toolResult
+          }]
+        });
+
+        response = await client.messages.create({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 1024,
+          system: 'You are a senior IT Architect and NetSuite specialist helping a colleague study for the SuiteFoundation exam. When asked about NetSuite topics, always use the read_study_notes tool to check the study notes first.',
+          tools: tools,
+          messages: messages
+        });
+      }
+
+      const text = response.content
+        .filter(b => b.type === 'text')
+        .map(b => b.text)
+        .join('');
+
+      messages.push({ role: 'assistant', content: response.content });
+
+      process.stdout.write('\x1B[1A\x1B[2K');
       console.log(`Agent: ${text}`);
 
     } catch (error) {
       console.error('❌ Error:', error.message);
     }
 
-    // Call ourselves again to keep the loop going
     turn();
   });
 }
 
-console.log('Agent ready. Type your message and press Enter. Type "exit" to quit.\n');
-turn(); // start the loop
+console.log('Agent ready - I have access to your study notes.');
+console.log('Try: "Give me a practice question about User Roles"\n');
+turn();

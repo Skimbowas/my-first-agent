@@ -1,0 +1,27 @@
+NETSUITE SUIEFOUNDATION STUDY NOTES
+
+USER ROLES & PERMISSIONS
+- Roles control what a user can see and do in NetSuite
+- A role is a collection of permissions assigned to a user
+- Users can have multiple roles but log in under one at a time
+- The Administrator role has unrestricted access
+- Custom roles can be created by copying standard roles
+- Permission levels: Full, Edit, Create, View, None
+
+SAVED SEARCHES
+- Saved searches can be shared with roles or specific users
+- Public saved searches are visible to all users
+- Results can be summarized using summary types: Sum, Count, Max, Min, Average
+- Scheduled saved searches can email results automatically
+
+SANDBOX VS PRODUCTION
+- Sandbox is an isolated copy of Production used for testing
+- Sandbox data can be refreshed from Production on request
+- Integrations in Sandbox should point to staging endpoints
+- SDF (SuiteCloud Development Framework) is used to deploy code between environments
+
+SUITEFLOW (WORKFLOWS)
+- Workflows automate business processes without code
+- Trigger types: Before Record Load, Before Record Submit, After Record Submit
+- States contain actions; transitions move between states
+- Workflow actions include: Set Field Value, Send Email, Create Record

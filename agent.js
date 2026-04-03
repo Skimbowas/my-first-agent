@@ -107,24 +107,28 @@ async function turn() {
       });
 
       while (response.stop_reason === 'tool_use') {
-        const toolUse = response.content.find(b => b.type === 'tool_use');
-        console.log(`   [Model requested: ${toolUse.name}]`);
+  const toolUses = response.content.filter(b => b.type === 'tool_use');
 
-        const toolResult = await executeTool(toolUse.name, toolUse.input);
+  messages.push({ role: 'assistant', content: response.content });
 
-        messages.push({ role: 'assistant', content: response.content });
-        messages.push({
-          role: 'user',
-          content: [{
-            type: 'tool_result',
-            tool_use_id: toolUse.id,
-            content: toolResult
-          }]
-        });
+  const toolResults = [];
+  for (const toolUse of toolUses) {
+    console.log(`   [Model requested: ${toolUse.name}]`);
+    const toolResult = await executeTool(toolUse.name, toolUse.input);
+    toolResults.push({
+      type: 'tool_result',
+      tool_use_id: toolUse.id,
+      content: toolResult
+    });
+  }
+
+  messages.push({
+    role: 'user',
+    content: toolResults
+  });
 
         response = await client.messages.create({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 1024,
+          model: 'claude-haiku-4-5-20251001',        max_tokens: 1024,
           system: 'You are a senior IT Architect and NetSuite specialist helping a colleague study for the SuiteFoundation exam. When asked about NetSuite topics, always use the read_study_notes tool to check the study notes first.',
           tools: tools,
           messages: messages

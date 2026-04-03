@@ -5,7 +5,8 @@ const readline = require('readline');
 
 const client = new Anthropic();
 
-const tools = [{
+const tools = [
+  {
   name: 'read_study_notes',
   description: 'Reads the contents of the local study notes file. Use this when the user asks about NetSuite topics, exam questions, or anything that might be in the study notes.',
   input_schema: {
@@ -18,9 +19,32 @@ const tools = [{
     },
     required: ['filename']
   }
-}];
+},
+{
+  name: 'get_weather',
+  description: 'Gets the current weather for a city. Use this when the user asks about weather anywhere.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      city: {
+        type: 'string',
+        description: 'The city anem, e.g Chicago'
+      },
+      latitude: {
+        type: 'number',
+        description: 'Latitude fo the city'
+      },
+      longitude: {
+        type: 'number',
+        description: 'longitude of the city'
+      }
+    },
+    required: ['city','latitude','longitude']
+  }
+}
+];
 
-function executeTool(name, input) {
+async function executeTool(name, input) {
   if (name === 'read_study_notes') {
     const filename = input.filename || 'study_notes.txt';
     try {
@@ -29,6 +53,20 @@ function executeTool(name, input) {
       return contents;
     } catch (err) {
       return `Error: could not read file "${filename}". ${err.message}`;
+    }
+  }
+
+  if (name === 'get_weather') {
+    const { city, latitude, longitude } = input;
+    try {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const temp = data.current.temperature_2m;
+      console.log(`   [Tool: get_weather for ${city} - ${temp}°F]`);
+      return JSON.stringify({ city, temperature_f: temp });
+    } catch (err) {
+      return `Error fetching weather: ${err.message}`;
     }
   }
   return `Error: unknown tool "${name}"`;
@@ -72,7 +110,7 @@ async function turn() {
         const toolUse = response.content.find(b => b.type === 'tool_use');
         console.log(`   [Model requested: ${toolUse.name}]`);
 
-        const toolResult = executeTool(toolUse.name, toolUse.input);
+        const toolResult = await executeTool(toolUse.name, toolUse.input);
 
         messages.push({ role: 'assistant', content: response.content });
         messages.push({

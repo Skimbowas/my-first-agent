@@ -41,7 +41,21 @@ const tools = [
     },
     required: ['city','latitude','longitude']
   }
-}
+},
+{
+    name: 'get_customer',
+    description: 'Look up a customer by name or ID and return their details including contact info and company. Use this when the user asks about a customer, client, or account.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        search: {
+          type: 'string',
+          description: 'Customer name or partial name to search for, e.g. "John" or "Acme"'
+        }
+      },
+      required: ['search']
+    }
+  }
 ];
 
 async function executeTool(name, input) {
@@ -67,6 +81,33 @@ async function executeTool(name, input) {
       return JSON.stringify({ city, temperature_f: temp });
     } catch (err) {
       return `Error fetching weather: ${err.message}`;
+    }
+  }
+
+  if (name === 'get_customer') {
+    const { search } = input;
+    try {
+      const res = await fetch('https://jsonplaceholder.typicode.com/users');
+      const users = await res.json();
+      const matches = users.filter(u =>
+        u.name.toLowerCase().includes(search.toLowerCase()) ||
+        u.company.name.toLowerCase().includes(search.toLowerCase())
+      );
+      if (matches.length === 0) {
+        return JSON.stringify({ error: `No customers found matching "${search}"` });
+      }
+      const result = matches.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        phone: u.phone,
+        company: u.company.name,
+        city: u.address.city
+      }));
+      console.log(`   [Tool: get_customer "${search}" - ${result.length} match(es) found]`);
+      return JSON.stringify(result);
+    } catch (err) {
+      return `Error fetching customer: ${err.message}`;
     }
   }
   return `Error: unknown tool "${name}"`;
@@ -101,7 +142,7 @@ async function turn() {
       let response = await client.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
-        system: 'You are a senior IT Architect and NetSuite specialist helping a colleague study for the SuiteFoundation exam. When asked about NetSuite topics, always use the read_study_notes tool to check the study notes first.',
+        system: 'You are a senior IT Architect and NetSuite specialist helping a colleague study for the SuiteFoundation exam. When asked about NetSuite topics, always use the read_study_notes tool. When asked about customers or accounts, use the get_customer tool to look them up.',
         tools: tools,
         messages: messages
       });

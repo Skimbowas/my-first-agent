@@ -179,11 +179,14 @@
 <body>
 
   <header>
-    <div>
-      <h1>AI Study & Lookup Agent</h1>
-      <p>NetSuite exam prep · Weather · Customer lookup</p>
-    </div>
-  </header>
+  <div>
+    <h1>AI Study & Lookup Agent</h1>
+    <p>NetSuite exam prep · Weather · Customer lookup</p>
+  </div>
+  <button onclick="clearScreen()" style="margin-left:auto;padding:6px 14px;background:transparent;color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;font-size:12px;cursor:pointer;">
+    Clear screen
+  </button>
+</header>
 
   <!-- EMPTY STATE — shown before first message -->
   <div id="empty-state">
@@ -306,6 +309,11 @@
       if (btn) btn.disabled = false;
       document.getElementById('bottom-input').focus();
     }
+
+    function clearScreen() {
+  const chatWindow = document.getElementById('chat-window');
+  chatWindow.innerHTML = '';
+}
   </script>
 
 </body>

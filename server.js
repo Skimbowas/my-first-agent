@@ -51,6 +51,34 @@ const tools = [
       },
       required: ['search']
     }
+  },
+  {
+    name: 'get_invoices',
+    description: 'Look up NetSuite invoices for a customer by company name or customer ID. Returns invoice number, amount, due date, and status.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        search: {
+          type: 'string',
+          description: 'Company name or customer ID to find invoices for'
+        }
+      },
+      required: ['search']
+    }
+  },
+  {
+    name: 'get_sales_orders',
+    description: 'Look up NetSuite sales orders for a customer by company name or customer ID. Returns order number, amount, status, and items ordered.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        search: {
+          type: 'string',
+          description: 'Company name or customer ID to find sales orders for'
+        }
+      },
+      required: ['search']
+    }
   }
 ];
 
@@ -159,6 +187,152 @@ async function executeTool(name, input) {
     return JSON.stringify(matches);
   }
 
+  if (name === 'get_invoices') {
+    const { search } = input;
+
+    const invoices = [
+      {
+        tranid: 'INV-9901',
+        customer: 'Meridian Group LLC',
+        entityid: 'CUST-10042',
+        amount: 5200.00,
+        amountremaining: 5200.00,
+        duedate: '2026-04-15',
+        status: 'Overdue',
+        location: 'Store #142 - SoHo NY'
+      },
+      {
+        tranid: 'INV-9944',
+        customer: 'Meridian Group LLC',
+        entityid: 'CUST-10042',
+        amount: 9050.00,
+        amountremaining: 9050.00,
+        duedate: '2026-05-01',
+        status: 'Open',
+        location: 'Store #142 - SoHo NY'
+      },
+      {
+        tranid: 'INV-9872',
+        customer: 'Hargrove Interiors',
+        entityid: 'CUST-10078',
+        amount: 8750.50,
+        amountremaining: 8750.50,
+        duedate: '2026-04-30',
+        status: 'Open',
+        location: 'Store #205 - Magnificent Mile IL'
+      },
+      {
+        tranid: 'INV-9815',
+        customer: 'Coastal Living Co',
+        entityid: 'CUST-10091',
+        amount: 3200.00,
+        amountremaining: 1600.00,
+        duedate: '2026-04-20',
+        status: 'Partial',
+        location: 'Store #318 - Santa Monica CA'
+      },
+      {
+        tranid: 'INV-9788',
+        customer: 'Northshore Design Group',
+        entityid: 'CUST-10117',
+        amount: 22100.75,
+        amountremaining: 22100.75,
+        duedate: '2026-03-31',
+        status: 'Overdue',
+        location: 'Store #167 - Newbury Street MA'
+      }
+    ];
+
+    const matches = invoices.filter(i =>
+      i.customer.toLowerCase().includes(search.toLowerCase()) ||
+      i.entityid.toLowerCase().includes(search.toLowerCase()) ||
+      i.tranid.toLowerCase().includes(search.toLowerCase())
+    );
+
+    if (matches.length === 0) {
+      return JSON.stringify({ error: `No invoices found for "${search}"` });
+    }
+
+    console.log(`   [Tool: netsuite_get_invoices "${search}" - ${matches.length} match(es)]`);
+    return JSON.stringify(matches);
+  }
+
+  if (name === 'get_sales_orders') {
+    const { search } = input;
+
+    const salesOrders = [
+      {
+        tranid: 'SO-44821',
+        customer: 'Meridian Group LLC',
+        entityid: 'CUST-10042',
+        amount: 12400.00,
+        status: 'Pending Fulfillment',
+        trandate: '2026-03-28',
+        location: 'Store #142 - SoHo NY',
+        items: [
+          { item: 'Sactional Base - Deep', quantity: 4, rate: 1200.00 },
+          { item: 'Sactional Side - Deep', quantity: 8, rate: 650.00 }
+        ]
+      },
+      {
+        tranid: 'SO-44756',
+        customer: 'Hargrove Interiors',
+        entityid: 'CUST-10078',
+        amount: 8750.50,
+        status: 'Pending Billing',
+        trandate: '2026-03-15',
+        location: 'Store #205 - Magnificent Mile IL',
+        items: [
+          { item: 'Sactional Base - Standard', quantity: 3, rate: 995.00 },
+          { item: 'Sactional Cover - Lapis', quantity: 6, rate: 180.00 },
+          { item: 'StealthTech Sound + Charge', quantity: 2, rate: 795.00 }
+        ]
+      },
+      {
+        tranid: 'SO-44690',
+        customer: 'Coastal Living Co',
+        entityid: 'CUST-10091',
+        amount: 4800.00,
+        status: 'Billed',
+        trandate: '2026-03-01',
+        location: 'Store #318 - Santa Monica CA',
+        items: [
+          { item: 'Sactional Base - Deep', quantity: 2, rate: 1200.00 },
+          { item: 'Sactional Side - Deep', quantity: 4, rate: 650.00 },
+          { item: 'Sactional Cover - Ivory Felt', quantity: 4, rate: 175.00 }
+        ]
+      },
+      {
+        tranid: 'SO-44601',
+        customer: 'Northshore Design Group',
+        entityid: 'CUST-10117',
+        amount: 22100.75,
+        status: 'Pending Fulfillment',
+        trandate: '2026-02-20',
+        location: 'Store #167 - Newbury Street MA',
+        items: [
+          { item: 'Sactional Base - Deep', quantity: 8, rate: 1200.00 },
+          { item: 'Sactional Side - Deep', quantity: 12, rate: 650.00 },
+          { item: 'StealthTech Sound + Charge', quantity: 4, rate: 795.00 },
+          { item: 'Sactional Cover - Charcoal', quantity: 8, rate: 180.00 }
+        ]
+      }
+    ];
+
+    const matches = salesOrders.filter(o =>
+      o.customer.toLowerCase().includes(search.toLowerCase()) ||
+      o.entityid.toLowerCase().includes(search.toLowerCase()) ||
+      o.tranid.toLowerCase().includes(search.toLowerCase())
+    );
+
+    if (matches.length === 0) {
+      return JSON.stringify({ error: `No sales orders found for "${search}"` });
+    }
+
+    console.log(`   [Tool: netsuite_get_sales_orders "${search}" - ${matches.length} match(es)]`);
+    return JSON.stringify(matches);
+  }
+
   return `Error: unknown tool "${name}"`;
 }
 
@@ -182,7 +356,7 @@ app.post('/chat', async (req, res) => {
     let response = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
-      system: 'You are a senior IT Architect and NetSuite specialist helping a colleague study for the SuiteFoundation exam. When asked about NetSuite topics, use the read_study_notes tool. When asked about customers, use the get_customer tool. When asked about weather, use the get_weather tool.',
+      system: 'You are a senior IT Architect and NetSuite specialist helping a colleague study for the SuiteFoundation exam. When asked about NetSuite topics, use the read_study_notes tool. When asked about customers or accounts, use the get_customer tool. When asked about invoices, use the get_invoices tool. When asked about sales orders or orders, use the get_sales_orders tool. When asked about weather, use the get_weather tool.',
       tools: tools,
       messages: messages
     });
@@ -206,7 +380,7 @@ app.post('/chat', async (req, res) => {
       response = await client.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
-        system: 'You are a senior IT Architect and NetSuite specialist helping a colleague study for the SuiteFoundation exam. When asked about NetSuite topics, use the read_study_notes tool. When asked about customers, use the get_customer tool. When asked about weather, use the get_weather tool.',
+        system: 'You are a senior IT Architect and NetSuite specialist helping a colleague study for the SuiteFoundation exam. When asked about NetSuite topics, use the read_study_notes tool. When asked about customers or accounts, use the get_customer tool. When asked about invoices, use the get_invoices tool. When asked about sales orders or orders, use the get_sales_orders tool. When asked about weather, use the get_weather tool.',
         tools: tools,
         messages: messages
       });

@@ -20,6 +20,7 @@
   "homepage": "https://github.com/Skimbowas/my-first-agent#readme",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
-    "dotenv": "^17.4.0"
+    "dotenv": "^17.4.0",
+    "express": "^5.2.1"
   }
 }

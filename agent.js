@@ -44,13 +44,13 @@ const tools = [
 },
 {
     name: 'get_customer',
-    description: 'Look up a customer by name or ID and return their details including contact info and company. Use this when the user asks about a customer, client, or account.',
+    description: 'Look up a NetSuite customer record by company name, customer ID, sales rep, or location. Returns full customer details including balance, terms, and billing address.',
     input_schema: {
       type: 'object',
       properties: {
         search: {
           type: 'string',
-          description: 'Customer name or partial name to search for, e.g. "John" or "Acme"'
+          description: 'Company name, customer ID (e.g. CUST-10042), sales rep name, or location to search for'
         }
       },
       required: ['search']
@@ -86,29 +86,83 @@ async function executeTool(name, input) {
 
   if (name === 'get_customer') {
     const { search } = input;
-    try {
-      const res = await fetch('https://jsonplaceholder.typicode.com/users');
-      const users = await res.json();
-      const matches = users.filter(u =>
-        u.name.toLowerCase().includes(search.toLowerCase()) ||
-        u.company.name.toLowerCase().includes(search.toLowerCase())
-      );
-      if (matches.length === 0) {
-        return JSON.stringify({ error: `No customers found matching "${search}"` });
+
+    const customers = [
+      {
+        entityid: 'CUST-10042',
+        companyname: 'Meridian Group LLC',
+        email: 'ar@meridiangroup.com',
+        phone: '212-555-0182',
+        status: 'Active',
+        terms: 'Net 30',
+        balance: 14250.00,
+        salesrep: 'Dana Holloway',
+        location: 'Store #142 - SoHo NY',
+        billingaddress: '480 Broadway, New York, NY 10013'
+      },
+      {
+        entityid: 'CUST-10078',
+        companyname: 'Hargrove Interiors',
+        email: 'billing@hargroveinteriors.com',
+        phone: '312-555-0247',
+        status: 'Active',
+        terms: 'Net 60',
+        balance: 8750.50,
+        salesrep: 'Marcus Webb',
+        location: 'Store #205 - Magnificent Mile IL',
+        billingaddress: '900 N Michigan Ave, Chicago, IL 60611'
+      },
+      {
+        entityid: 'CUST-10091',
+        companyname: 'Coastal Living Co',
+        email: 'payments@coastalliving.com',
+        phone: '310-555-0394',
+        status: 'Active',
+        terms: 'Net 30',
+        balance: 3200.00,
+        salesrep: 'Priya Nair',
+        location: 'Store #318 - Santa Monica CA',
+        billingaddress: '395 Santa Monica Place, Santa Monica, CA 90401'
+      },
+      {
+        entityid: 'CUST-10103',
+        companyname: 'Summit Home Furnishings',
+        email: 'info@summithome.com',
+        phone: '720-555-0561',
+        status: 'Inactive',
+        terms: 'Net 15',
+        balance: 0.00,
+        salesrep: 'Jake Torrence',
+        location: 'Store #091 - Cherry Creek CO',
+        billingaddress: '3000 E 1st Ave, Denver, CO 80206'
+      },
+      {
+        entityid: 'CUST-10117',
+        companyname: 'Northshore Design Group',
+        email: 'accounts@northshoredesign.com',
+        phone: '617-555-0738',
+        status: 'Active',
+        terms: 'Net 45',
+        balance: 22100.75,
+        salesrep: 'Dana Holloway',
+        location: 'Store #167 - Newbury Street MA',
+        billingaddress: '200 Newbury St, Boston, MA 02116'
       }
-      const result = matches.map(u => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        phone: u.phone,
-        company: u.company.name,
-        city: u.address.city
-      }));
-      console.log(`   [Tool: get_customer "${search}" - ${result.length} match(es) found]`);
-      return JSON.stringify(result);
-    } catch (err) {
-      return `Error fetching customer: ${err.message}`;
+    ];
+
+    const matches = customers.filter(c =>
+      c.companyname.toLowerCase().includes(search.toLowerCase()) ||
+      c.entityid.toLowerCase().includes(search.toLowerCase()) ||
+      c.salesrep.toLowerCase().includes(search.toLowerCase()) ||
+      c.location.toLowerCase().includes(search.toLowerCase())
+    );
+
+    if (matches.length === 0) {
+      return JSON.stringify({ error: `No customers found matching "${search}"` });
     }
+
+    console.log(`   [Tool: netsuite_get_customer "${search}" - ${matches.length} match(es)]`);
+    return JSON.stringify(matches);
   }
   return `Error: unknown tool "${name}"`;
 }
